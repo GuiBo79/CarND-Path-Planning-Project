@@ -8,11 +8,17 @@
 #include "Eigen-3.3/Eigen/Core"
 #include "Eigen-3.3/Eigen/QR"
 #include "json.hpp"
+#include "spline.h"
+
 
 using namespace std;
 
 // for convenience
 using json = nlohmann::json;
+
+//Lane Number 0,1 or 2 and Velocity Reference **
+int lane = 1;
+double ref_vel = 0.224;
 
 // For converting back and forth between radians and degrees.
 constexpr double pi() { return M_PI; }
@@ -163,6 +169,8 @@ vector<double> getXY(double s, double d, const vector<double> &maps_s, const vec
 
 }
 
+
+
 int main() {
   uWS::Hub h;
 
@@ -173,10 +181,14 @@ int main() {
   vector<double> map_waypoints_dx;
   vector<double> map_waypoints_dy;
 
+  
+
   // Waypoint map to read from
   string map_file_ = "../data/highway_map.csv";
   // The max s value before wrapping around the track back to 0
   double max_s = 6945.554;
+    
+  
 
   ifstream in_map_(map_file_.c_str(), ifstream::in);
 
@@ -199,6 +211,7 @@ int main() {
   	map_waypoints_dx.push_back(d_x);
   	map_waypoints_dy.push_back(d_y);
   }
+    
 
   h.onMessage([&map_waypoints_x,&map_waypoints_y,&map_waypoints_s,&map_waypoints_dx,&map_waypoints_dy](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
                      uWS::OpCode opCode) {
@@ -207,6 +220,11 @@ int main() {
     // The 2 signifies a websocket event
     //auto sdata = string(data).substr(0, length);
     //cout << sdata << endl;
+      
+    
+    
+      
+    
     if (length && length > 2 && data[0] == '4' && data[1] == '2') {
 
       auto s = hasData(data);
@@ -236,6 +254,210 @@ int main() {
 
           	// Sensor Fusion Data, a list of all other cars on the same side of the road.
           	auto sensor_fusion = j[1]["sensor_fusion"];
+            
+            
+            // Previous path size **
+            int prev_size = previous_path_x.size();
+            
+            if (prev_size > 0){
+                car_s = end_path_s;
+            }
+            
+            
+            int cl_counter = 0; //Count closer than 30m sensor fusion data
+            double front_car_vel; // Front Car Velocity
+            bool front_left = false;
+            bool rear_left = false;
+            bool front_right = false;
+            bool rear_right = false;
+            
+            
+            //find ref_v and anti-colision code
+            for (int i=0; i < sensor_fusion.size(); i++){
+                
+                double id = sensor_fusion[i][0];
+                double x = sensor_fusion[i][1];
+                double y = sensor_fusion[i][2];
+                double vx = sensor_fusion[i][3];
+                double vy = sensor_fusion[i][4];
+                double s = sensor_fusion[i][5];
+                double d = sensor_fusion[i][6];
+                
+                double car_dist = distance(x,y,car_x,car_y);
+                front_car_vel = sqrt((vx*vx+vy*vy));
+
+                s += ((double)prev_size*0.02*front_car_vel);
+                
+                
+                if (d < (2+4*lane+2) && d > (2+4*lane-2)){ // Check if there is a car in the same lane
+                    
+                    if (s > car_s && s - car_s <=25){ //Check if the car is in front of EGO
+                    
+                        
+                            std::cout << "Front ID: " << id << std::endl;
+                            std::cout << "Distance S: " << s - car_s << std::endl;
+                            std::cout << "Distance XY: " << car_dist << std::endl;
+                            std::cout << "Front Car Velocity: " << front_car_vel*2.24 << std::endl;
+                            std::cout << "Reference Vel: " << ref_vel << std::endl;
+                            std::cout << "Car Speed: " << car_speed << std::endl;
+                            
+                            cl_counter++;
+                
+                            if(ref_vel > front_car_vel*2.24){
+                                ref_vel -= 17.92/(s-car_s);
+                            }
+                        
+                    }//End if S > car_s
+                    
+                }//End if is in the same lane
+                
+                if (lane > 0){ //Check if is not in 0 lane
+                    if (d < (2+4*(lane-1)+2) && d > (2+4*(lane-1)-2)){ // Check if there is a car in the left lane
+                    
+                        if (s > car_s && s - car_s <=20){ //Check if the car is in front left of EGO
+                        
+                            
+                            std::cout << "Front Left ID: " << id << std::endl;
+                            std::cout << "Distance S: " << s - car_s << std::endl;
+                            std::cout << "Distance XY: " << car_dist << std::endl;
+                            std::cout << "Front Car Velocity: " << front_car_vel*2.24 << std::endl;
+                            std::cout << "Reference Vel: " << ref_vel << std::endl;
+                            std::cout << "Car Speed: " << car_speed << std::endl;
+                            
+                            front_left = true;
+                        
+                        }//End if S > car_s
+                        if (s < car_s && car_s - s <=12){ //Check if the car is in rear left of EGO
+                            
+                            
+                            std::cout << "Rear Left ID: " << id << std::endl;
+                            std::cout << "Distance S: " << s - car_s << std::endl;
+                            std::cout << "Distance XY: " << car_dist << std::endl;
+                            std::cout << "Front Car Velocity: " << front_car_vel*2.24 << std::endl;
+                            std::cout << "Reference Vel: " << ref_vel << std::endl;
+                            std::cout << "Car Speed: " << car_speed << std::endl;
+                            
+                            rear_left = true;
+                            
+                        }//End if S > car_s
+                    
+                    }//End if is in the left lane
+                }//End check if is not in lane 0
+                
+                if (lane < 2){ //Check if is not in 2 lane
+                    if (d < (2+4*(lane+1)+2) && d > (2+4*(lane+1)-2)){ // Check if there is a car in the front right lane
+                        
+                        if (s > car_s && s - car_s <=20){ //Check if the car is in Front Right of EGO
+                            
+                            
+                            std::cout << "Front Right ID: " << id << std::endl;
+                            std::cout << "Distance S: " << s - car_s << std::endl;
+                            std::cout << "Distance XY: " << car_dist << std::endl;
+                            std::cout << "Front Car Velocity: " << front_car_vel*2.24 << std::endl;
+                            std::cout << "Reference Vel: " << ref_vel << std::endl;
+                            std::cout << "Car Speed: " << car_speed << std::endl;
+                            
+                            front_right = true;
+                            
+                        }//End if S > car_s
+                        if (s < car_s && car_s - s <=12){ //Check if the car is in Rear Right of EGO
+                            
+                            
+                            std::cout << "Rear Right ID: " << id << std::endl;
+                            std::cout << "Distance S: " << s - car_s << std::endl;
+                            std::cout << "Distance XY: " << car_dist << std::endl;
+                            std::cout << "Front Car Velocity: " << front_car_vel*2.24 << std::endl;
+                            std::cout << "Reference Vel: " << ref_vel << std::endl;
+                            std::cout << "Car Speed: " << car_speed << std::endl;
+                            
+                            rear_right = true;
+                        
+                            
+                        }//End if S > car_s
+                        
+                    }//End if is in the Right lane
+                }//End check if is not in lane 2
+                
+            }// Sensor Fusion Loop
+            
+            
+            
+            
+            
+            // Way Points
+                                      //CALCULATES XY POSITIONS FOR EACH LANE
+            /*
+            vector<double> car_frenet = getFrenet(car_x, car_y, deg2rad(car_yaw), map_waypoints_x, map_waypoints_y);
+            vector<double> car_xy_ln0 = getXY(car_frenet[0],2,map_waypoints_s,map_waypoints_x,map_waypoints_y);
+            vector<double> car_xy_ln1 = getXY(car_frenet[0],6,map_waypoints_s,map_waypoints_x,map_waypoints_y);
+            vector<double> car_xy_ln2 = getXY(car_frenet[0],10,map_waypoints_s,map_waypoints_x,map_waypoints_y);
+            
+            std::cout << "===NEXT WAY POINT DISTANCES===" << std::endl;
+            int next_way_pts = NextWaypoint(car_x, car_y, deg2rad(car_yaw), map_waypoints_x, map_waypoints_y);
+            double ln0_next_waypts = distance(car_xy_ln0[0], car_xy_ln0[1], map_waypoints_x[next_way_pts], map_waypoints_y[next_way_pts]);
+            double ln1_next_waypts = distance(car_xy_ln1[0], car_xy_ln1[1], map_waypoints_x[next_way_pts], map_waypoints_y[next_way_pts]);
+            double ln2_next_waypts = distance(car_xy_ln2[0], car_xy_ln2[1], map_waypoints_x[next_way_pts], map_waypoints_y[next_way_pts]);
+            
+            
+            std::cout << "Lane 0: " << ln0_next_waypts << std::endl;
+            std::cout << "Lane 1: " << ln1_next_waypts << std::endl;
+            std::cout << "Lane 2: " << ln2_next_waypts << std::endl;
+            
+            
+            std::cout << "==CLOSEST WAY POINT DISTANCES==" << std::endl;
+            int closest_way_pts = ClosestWaypoint(car_x, car_y, map_waypoints_x, map_waypoints_y);
+            double ln0_closest_waypts = distance(car_xy_ln0[0], car_xy_ln0[1], map_waypoints_x[closest_way_pts], map_waypoints_y[closest_way_pts]);
+            double ln1_closest_waypts = distance(car_xy_ln1[0], car_xy_ln1[1], map_waypoints_x[closest_way_pts], map_waypoints_y[closest_way_pts]);
+            double ln2_closest_waypts = distance(car_xy_ln2[0], car_xy_ln2[1], map_waypoints_x[closest_way_pts], map_waypoints_y[closest_way_pts]);
+            
+            
+            std::cout << "Lane 0: " << ln0_closest_waypts << std::endl;
+            std::cout << "Lane 1: " << ln1_closest_waypts << std::endl;
+            std::cout << "Lane 2: " << ln2_closest_waypts << std::endl;*/
+            
+            
+            // End Ways Points
+            
+            
+            
+            // STATES
+            
+            if (cl_counter == 0)  { //Increase velocity if no car is closer than 40m
+                if (ref_vel <= 49.50) ref_vel += 0.448 ;
+            } else {
+            
+                if (lane == 1 && front_car_vel<0.95*ref_vel && !front_left && !rear_left){
+                    lane = 0;
+                } else if (lane == 1 && front_car_vel<0.95*ref_vel && !front_right && !rear_right){
+                    lane = 2;
+                } else if (lane == 1 && front_car_vel<0.95*ref_vel && ((front_right && !rear_right) || (front_left && !rear_left))){
+                    ref_vel -= 0.448;
+                } else if (lane == 1 && front_car_vel<0.95*ref_vel && ((!front_right && rear_right) || (!front_left && rear_left))){
+                    if(ref_vel <= 49.5) ref_vel += 0.448;
+                }
+            
+                if (lane == 2 && front_car_vel<0.95*ref_vel && !front_left && !rear_left){
+                    lane = 1;
+                }else if (lane == 2 && front_car_vel<0.95*ref_vel && ((front_right && !rear_right) || (front_left && !rear_left))){
+                    ref_vel -= 0.448;
+                }else if (lane == 2 && front_car_vel<0.95*ref_vel && ((!front_right && rear_right) || (!front_left && rear_left))){
+                    if(ref_vel <= 49.5) ref_vel += 0.448;
+                }
+            
+                if (lane == 0 && front_car_vel<0.95*ref_vel && !front_right && !rear_right){
+                    lane = 1;
+                }else if (lane == 0 && front_car_vel<0.95*ref_vel && ((front_right && !rear_right) || (front_left && !rear_left))){
+                    ref_vel -= 0.448;
+                }else if (lane == 0 && front_car_vel<0.95*ref_vel && ((!front_right && rear_right) || (!front_left && rear_left))){
+                    if(ref_vel <= 49.5) ref_vel += 0.448;
+                }
+            } // END Else
+            
+            
+            // END STATES
+            
+            
+            
 
           	json msgJson;
 
@@ -244,6 +466,115 @@ int main() {
 
 
           	// TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
+            
+            // Vector of points
+            vector<double> ptsx;
+            vector<double> ptsy;
+            
+            //References
+            double ref_x = car_x;
+            double ref_y = car_y;
+            double ref_yaw = deg2rad(car_yaw);
+            
+            if(prev_size < 2){
+                
+                double prev_car_x = car_x - cos(car_yaw);
+                double prev_car_y = car_y - sin(car_yaw);
+                
+                ptsx.push_back(prev_car_x);
+                ptsx.push_back(car_x);
+                ptsy.push_back(prev_car_y);
+                ptsy.push_back(car_y);
+                
+            } else {
+                
+                ref_x = previous_path_x[prev_size - 1];
+                ref_y = previous_path_y[prev_size - 1];
+                
+                double ref_x_prev = previous_path_x[prev_size - 2];
+                double ref_y_prev = previous_path_y[prev_size - 2];
+                ref_yaw = atan2(ref_y - ref_y_prev, ref_x - ref_x_prev);
+                
+                ptsx.push_back(ref_x_prev);
+                ptsx.push_back(ref_x);
+                ptsy.push_back(ref_y_prev);
+                ptsy.push_back(ref_y);
+                
+            }
+            
+            vector<double> next_wp0 = getXY(car_s+40,2+4*lane,map_waypoints_s,map_waypoints_x,map_waypoints_y);
+            vector<double> next_wp1 = getXY(car_s+80,2+4*lane,map_waypoints_s,map_waypoints_x,map_waypoints_y);
+            vector<double> next_wp2 = getXY(car_s+120,2+4*lane,map_waypoints_s,map_waypoints_x,map_waypoints_y);
+            
+            ptsx.push_back(next_wp0[0]);
+            ptsx.push_back(next_wp1[0]);
+            ptsx.push_back(next_wp2[0]);
+            
+            ptsy.push_back(next_wp0[1]);
+            ptsy.push_back(next_wp1[1]);
+            ptsy.push_back(next_wp2[1]);
+            
+            for (int i=0; i < ptsx.size(); i++){
+                
+                double shift_x = ptsx[i] - ref_x;
+                double shift_y = ptsy[i] - ref_y;
+                
+                //Reference Shifting to cars coordinates
+                ptsx[i] = (shift_x*cos(0-ref_yaw) - shift_y*sin(0-ref_yaw));
+                ptsy[i] = (shift_x*sin(0-ref_yaw) + shift_y*cos(0-ref_yaw));
+                
+                
+            }
+            
+            //Spline
+            tk::spline s;
+            
+            s.set_points(ptsx, ptsy);
+            
+            for( int i=0; i < previous_path_x.size(); i++){
+                
+                next_x_vals.push_back(previous_path_x[i]);
+                next_y_vals.push_back(previous_path_y[i]);
+                
+            }
+            
+            //Breaking the spine to reach the desired velocity
+            double target_x = 40.0;
+            double target_y = s(target_x);
+            double target_dist = sqrt(target_x*target_x + target_y*target_y);
+            
+            double x_add_on = 0;
+            
+            for(int i=1; i<=50 - previous_path_x.size(); i++){
+                
+                double N = (target_dist/(0.02*ref_vel/2.24));
+                double x_point = x_add_on + (target_x)/N;
+                double y_point = s(x_point);
+                
+                x_add_on = x_point;
+                
+                double x_ref = x_point;
+                double y_ref = y_point;
+                
+                //reverse reference shifting
+                
+                x_point = (x_ref*cos(ref_yaw) - y_ref*sin(ref_yaw));
+                y_point = (x_ref*sin(ref_yaw) + y_ref*cos(ref_yaw));
+                
+                x_point += ref_x;
+                y_point += ref_y;
+                
+                next_x_vals.push_back(x_point);
+                next_y_vals.push_back(y_point);
+                
+            }
+            
+            
+            
+            
+            
+            //////////END TODO
+            
           	msgJson["next_x"] = next_x_vals;
           	msgJson["next_y"] = next_y_vals;
 
