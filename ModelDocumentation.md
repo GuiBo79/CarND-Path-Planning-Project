@@ -85,17 +85,110 @@ In regular driving conditions with no possibility of changing lane the car will 
 
 ### Sensor Fusion and driving conditions detection: 
 
-This part of the code takes the information from sensor fusion and traces the driving scenario and how is the environment around EGO car. Here are covered all the possibilities of the distribution of the car in the road, in all lanes as follow (from line 292 to 381).
+This part of the code takes the information from sensor fusion, traces the driving scenario and how is the environment around EGO car. Here are covered all the possibilities of the distribution of the car in the road, in all lanes as follow (from line 292 to 381).
 
-	Front car.
-	Front right  car.
-	Rear right car.
-	Front left car.
-	Rear left car. 
+	Car in front
+	Car in front right
+	Car in rear right
+	Car in front left
+	Car in rear left
+	
+	if (d < (2+4*lane+2) && d > (2+4*lane-2)){ // Check if there is a car in the same lane
+                    
+                    if (s > car_s && s - car_s <=30){ //Check if the car is in front of EGO
+                    
+                        
+                            std::cout << "Front ID: " << id << std::endl;
+                            std::cout << "Distance S: " << s - car_s << std::endl;
+                            std::cout << "Distance XY: " << car_dist << std::endl;
+                            std::cout << "Front Car Velocity: " << front_car_vel*2.24 << std::endl;
+                            std::cout << "Reference Vel: " << ref_vel << std::endl;
+                            std::cout << "Car Speed: " << car_speed << std::endl;
+                            
+                            cl_counter++;
+                
+                            if(ref_vel > front_car_vel*2.24){
+                                ref_vel -= 17.92/(s-car_s);
+                            }
+                        
+                    }//End if S > car_s
+                    
+                }//End if is in the same lane
+                
+                if (lane > 0){ //Check if is not in 0 lane
+                    if (d < (2+4*(lane-1)+2) && d > (2+4*(lane-1)-2)){ // Check if there is a car in the left lane
+                    
+                        if (s > car_s && s - car_s <=30){ //Check if the car is in front left of EGO
+                        
+                            
+                            std::cout << "Front Left ID: " << id << std::endl;
+                            std::cout << "Distance S: " << s - car_s << std::endl;
+                            std::cout << "Distance XY: " << car_dist << std::endl;
+                            std::cout << "Front Car Velocity: " << front_car_vel*2.24 << std::endl;
+                            std::cout << "Reference Vel: " << ref_vel << std::endl;
+                            std::cout << "Car Speed: " << car_speed << std::endl;
+                            
+                            front_left = true;
+                        
+                        }//End if S > car_s
+                        if (s < car_s && car_s - s <=12){ //Check if the car is in rear left of EGO
+                            
+                            
+                            std::cout << "Rear Left ID: " << id << std::endl;
+                            std::cout << "Distance S: " << s - car_s << std::endl;
+                            std::cout << "Distance XY: " << car_dist << std::endl;
+                            std::cout << "Front Car Velocity: " << front_car_vel*2.24 << std::endl;
+                            std::cout << "Reference Vel: " << ref_vel << std::endl;
+                            std::cout << "Car Speed: " << car_speed << std::endl;
+                            
+                            rear_left = true;
+                            
+                        }//End if S > car_s
+                    
+                    }//End if is in the left lane
+                }//End check if is not in lane 0
+                
+                if (lane < 2){ //Check if is not in 2 lane
+                    if (d < (2+4*(lane+1)+2) && d > (2+4*(lane+1)-2)){ // Check if there is a car in the front right lane
+                        
+                        if (s > car_s && s - car_s <=30){ //Check if the car is in Front Right of EGO
+                            
+                            
+                            std::cout << "Front Right ID: " << id << std::endl;
+                            std::cout << "Distance S: " << s - car_s << std::endl;
+                            std::cout << "Distance XY: " << car_dist << std::endl;
+                            std::cout << "Front Car Velocity: " << front_car_vel*2.24 << std::endl;
+                            std::cout << "Reference Vel: " << ref_vel << std::endl;
+                            std::cout << "Car Speed: " << car_speed << std::endl;
+                            
+                            front_right = true;
+                            
+                        }//End if S > car_s
+                        if (s < car_s && car_s - s <=12){ //Check if the car is in Rear Right of EGO
+                            
+                            
+                            std::cout << "Rear Right ID: " << id << std::endl;
+                            std::cout << "Distance S: " << s - car_s << std::endl;
+                            std::cout << "Distance XY: " << car_dist << std::endl;
+                            std::cout << "Front Car Velocity: " << front_car_vel*2.24 << std::endl;
+                            std::cout << "Reference Vel: " << ref_vel << std::endl;
+                            std::cout << "Car Speed: " << car_speed << std::endl;
+                            
+                            rear_right = true;
+                        
+                            
+                        }//End if S > car_s
+                        
+                    }//End if is in the Right lane
+                }//End check if is not in lane 2
+                
+            }// Sensor Fusion Loop
+	
+	
 	
 Here the code atributes boolean states for all the conditions described above. This boolean states will be used later to set the conditions of lane changes and GAP searching. Is considered as free lane when have no rear car closer than 12 meters and front car within 30 meters. 
 
-### Lane change states and GAP searching: 
+### Lane changing states and GAP searching: 
 
 Here is the core of this project, where according the cars distribution around EGO will determine what action the car must perform. 
 
@@ -118,11 +211,17 @@ Considering the two lanes are not free, but has no rear car (left or right) and 
 	} else if (lane == 1 && front_car_vel<0.95*ref_vel && ((front_right && !rear_right) || (front_left && !rear_left))){
                     ref_vel -= 0.224;
 
-In the opposite situation, if has no front car (left or right) , but has a rear car(left or right), EGO will start to accelerate until speed limit and prepares to change lane (lane 0 or lane 2, the first who becomes free). 
+In the opposite situation, if has no front car (left or right) , but has a rear car(left or right), EGO will start to accelerate until speed limit and prepares to change lane (lane 0 or lane 2, the first who becomes free), always respecting speed limit and safe distance from front car.
 
 	} else if (lane == 1 && front_car_vel<0.95*ref_vel && ((!front_right && rear_right) || (!front_left && rear_left))){
                     if(ref_vel <= 49.5) ref_vel += 0.224;
                 }
+		
+### Conclusion:
+
+This project was challenging but very pleasurable. See my code driving a car in a highway , very close the way I would drive in the same situation is amazing. The more I get on SDC the more I see how complex is to have an safe, realible and eficient SDC, this motivates me to go through the technology and maybe some day be part of development team.
+
+
 		
 
 
