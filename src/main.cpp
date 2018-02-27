@@ -291,7 +291,7 @@ int main() {
                 
                 if (d < (2+4*lane+2) && d > (2+4*lane-2)){ // Check if there is a car in the same lane
                     
-                    if (s > car_s && s - car_s <=25){ //Check if the car is in front of EGO
+                    if (s > car_s && s - car_s <=30){ //Check if the car is in front of EGO
                     
                         
                             std::cout << "Front ID: " << id << std::endl;
@@ -314,7 +314,7 @@ int main() {
                 if (lane > 0){ //Check if is not in 0 lane
                     if (d < (2+4*(lane-1)+2) && d > (2+4*(lane-1)-2)){ // Check if there is a car in the left lane
                     
-                        if (s > car_s && s - car_s <=20){ //Check if the car is in front left of EGO
+                        if (s > car_s && s - car_s <=30){ //Check if the car is in front left of EGO
                         
                             
                             std::cout << "Front Left ID: " << id << std::endl;
@@ -347,7 +347,7 @@ int main() {
                 if (lane < 2){ //Check if is not in 2 lane
                     if (d < (2+4*(lane+1)+2) && d > (2+4*(lane+1)-2)){ // Check if there is a car in the front right lane
                         
-                        if (s > car_s && s - car_s <=20){ //Check if the car is in Front Right of EGO
+                        if (s > car_s && s - car_s <=30){ //Check if the car is in Front Right of EGO
                             
                             
                             std::cout << "Front Right ID: " << id << std::endl;
@@ -386,7 +386,7 @@ int main() {
             
             // Way Points
                                       //CALCULATES XY POSITIONS FOR EACH LANE
-            /*
+            
             vector<double> car_frenet = getFrenet(car_x, car_y, deg2rad(car_yaw), map_waypoints_x, map_waypoints_y);
             vector<double> car_xy_ln0 = getXY(car_frenet[0],2,map_waypoints_s,map_waypoints_x,map_waypoints_y);
             vector<double> car_xy_ln1 = getXY(car_frenet[0],6,map_waypoints_s,map_waypoints_x,map_waypoints_y);
@@ -413,7 +413,7 @@ int main() {
             
             std::cout << "Lane 0: " << ln0_closest_waypts << std::endl;
             std::cout << "Lane 1: " << ln1_closest_waypts << std::endl;
-            std::cout << "Lane 2: " << ln2_closest_waypts << std::endl;*/
+            std::cout << "Lane 2: " << ln2_closest_waypts << std::endl;
             
             
             // End Ways Points
@@ -422,7 +422,7 @@ int main() {
             
             // STATES
             
-            if (cl_counter == 0)  { //Increase velocity if no car is closer than 40m
+            if (cl_counter == 0)  { //Increase velocity if no car is closer than 30m
                 if (ref_vel <= 49.50) ref_vel += 0.448 ;
             } else {
             
@@ -431,25 +431,25 @@ int main() {
                 } else if (lane == 1 && front_car_vel<0.95*ref_vel && !front_right && !rear_right){
                     lane = 2;
                 } else if (lane == 1 && front_car_vel<0.95*ref_vel && ((front_right && !rear_right) || (front_left && !rear_left))){
-                    ref_vel -= 0.448;
+                    ref_vel -= 0.224;
                 } else if (lane == 1 && front_car_vel<0.95*ref_vel && ((!front_right && rear_right) || (!front_left && rear_left))){
-                    if(ref_vel <= 49.5) ref_vel += 0.448;
+                    if(ref_vel <= 49.5) ref_vel += 0.224;
                 }
             
                 if (lane == 2 && front_car_vel<0.95*ref_vel && !front_left && !rear_left){
                     lane = 1;
                 }else if (lane == 2 && front_car_vel<0.95*ref_vel && ((front_right && !rear_right) || (front_left && !rear_left))){
-                    ref_vel -= 0.448;
+                    ref_vel -= 0.224;
                 }else if (lane == 2 && front_car_vel<0.95*ref_vel && ((!front_right && rear_right) || (!front_left && rear_left))){
-                    if(ref_vel <= 49.5) ref_vel += 0.448;
+                    if(ref_vel <= 49.5) ref_vel += 0.224;
                 }
             
                 if (lane == 0 && front_car_vel<0.95*ref_vel && !front_right && !rear_right){
                     lane = 1;
                 }else if (lane == 0 && front_car_vel<0.95*ref_vel && ((front_right && !rear_right) || (front_left && !rear_left))){
-                    ref_vel -= 0.448;
+                    ref_vel -= 0.224;
                 }else if (lane == 0 && front_car_vel<0.95*ref_vel && ((!front_right && rear_right) || (!front_left && rear_left))){
-                    if(ref_vel <= 49.5) ref_vel += 0.448;
+                    if(ref_vel <= 49.5) ref_vel += 0.224;
                 }
             } // END Else
             
