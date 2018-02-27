@@ -93,7 +93,41 @@ This part of the code takes the information from sensor fusion and traces the dr
 	Front left car.
 	Rear left car. 
 	
-Here the code atributes boolean states for all the conditions described above. This boolean states will be used later to set the conditions of lane changes and GAP searching. Is considered as free lane when have no rear car closer than 12 meters and front car 30 meters. 
+Here the code atributes boolean states for all the conditions described above. This boolean states will be used later to set the conditions of lane changes and GAP searching. Is considered as free lane when have no rear car closer than 12 meters and front car within 30 meters. 
+
+### Lane change states and GAP searching: 
+
+Here is the core of this project, where according the cars distribution around EGO will determine what action the car must perform. 
+
+The first and the simplest state is if have no car in front of EGO (cl_counter == 0). In this case the car will accelerates until limit velocity and will not perform lane change. 
+
+	if (cl_counter == 0)  { //Increase velocity if no car is closer than 30m
+                if (ref_vel <= 49.50) ref_vel += 0.448 ;
+		
+For the next states I will explain using as example EGO in lane 1, because for lane 0 was just excluded the possibility for change to left lane and for lane 2 was excluded the possibility to change to right.
+
+Considering EGO in lane 1 , front car is slower than 95% of speed limit and left lane is free the car will change to lane 0, but if lane 0 is not free and lane 2 is free the car will change to lane 2.
+
+	if (lane == 1 && front_car_vel<0.95*ref_vel && !front_left && !rear_left){
+                    lane = 0;
+                } else if (lane == 1 && front_car_vel<0.95*ref_vel && !front_right && !rear_right){
+                    lane = 2;
+
+Considering the two lanes are not free, but has no rear car (left or right) and has  front car (left or right) , EGO will start to slow down searching a GAP to change lane (lane 0 or lane 2, the first who become free).
+
+	} else if (lane == 1 && front_car_vel<0.95*ref_vel && ((front_right && !rear_right) || (front_left && !rear_left))){
+                    ref_vel -= 0.224;
+
+In the opposite situation, if has no front car (left or right) , but has a rear car(left or right), EGO will start to accelerate until speed limit and prepares to change lane (lane 0 or lane 2, the first who becomes free). 
+
+	} else if (lane == 1 && front_car_vel<0.95*ref_vel && ((!front_right && rear_right) || (!front_left && rear_left))){
+                    if(ref_vel <= 49.5) ref_vel += 0.224;
+                }
+		
+
+
+
+
 
 
 
