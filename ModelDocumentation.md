@@ -80,7 +80,25 @@ To control the car velocity and to avoid the car to collide with the front car w
                 }//End if is in the same lane
                 
 Here we have the cl_counter variable. This variable counts how many cars are in a space smaller than 30 meters and the line "ref_vel -= 17.92/(s-car_s)" 
-controls the actuation of the breaks to prevent a collision. As closer the front car is stronger will be the breaks action.
+controls the actuation of the breaks to prevent a collision. As closer the front car is stronger will be the breaks action. 
+In regular driving conditions with no possibility of changing lane the car will follow the front car keeping a safe distance with the same velocity. More details will be explained later.
+
+### Sensor Fusion and driving conditions detection: 
+
+This part of the code takes the information from sensor fusion and traces the driving scenario and how is the environment around EGO car. Here are covered all the possibilities of the distribution of the car in the road, in all lanes as follow (from line 292 to 381).
+
+	Front car.
+	Front right  car.
+	Rear right car.
+	Front left car.
+	Rear left car. 
+	
+Here the code atributes boolean states for all the conditions described above. This boolean states will be used later to set the conditions of lane changes and GAP searching. Is considered as free lane when have no rear car closer than 12 meters and front car 30 meters. 
+
+
+
+
+
 
 
 
