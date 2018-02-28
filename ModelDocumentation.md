@@ -222,6 +222,20 @@ In the opposite situation, if has no front car (left or right) , but has a rear 
 This project was challenging but very pleasurable. See my code driving a car in a highway , very close the way I would drive in the same situation is amazing. The more I get on SDC the more I see how complex is to have an safe, realible and eficient SDC, this motivates me to go through the technology and maybe some day be part of development team.
 
 
+### Post Review Action
+
+Decrease breaks strenght action (line 312)
+
+Increase safe distances (line 299, line 322, line 335, line 355, line 368)
+
+Decrease Spline Total Range (line 511 to 513)
+
+Increase safety check for changing lanes including the boolean variable too_close. EGO will change lane just if there is no car closer than 12 meters. (line 453, line 445, line 434)
+
+
+
+
+
 		
 
 
