@@ -19,6 +19,8 @@ using json = nlohmann::json;
 //Lane Number 0,1 or 2 and Velocity Reference **
 int lane = 1;
 double ref_vel = 0.224;
+bool too_close = false;
+
 
 // For converting back and forth between radians and degrees.
 constexpr double pi() { return M_PI; }
@@ -272,6 +274,7 @@ int main() {
             bool rear_right = false;
             
             
+            
             //find ref_v and anti-colision code
             for (int i=0; i < sensor_fusion.size(); i++){
                 
@@ -285,13 +288,15 @@ int main() {
                 
                 double car_dist = distance(x,y,car_x,car_y);
                 front_car_vel = sqrt((vx*vx+vy*vy));
+                
+                if (car_dist < 12) {too_close = true;} else {too_close = false;}
 
                 s += ((double)prev_size*0.02*front_car_vel);
                 
                 
                 if (d < (2+4*lane+2) && d > (2+4*lane-2)){ // Check if there is a car in the same lane
                     
-                    if (s > car_s && s - car_s <=30){ //Check if the car is in front of EGO
+                    if (s > car_s && s - car_s <=40){ //Check if the car is in front of EGO
                     
                         
                             std::cout << "Front ID: " << id << std::endl;
@@ -304,7 +309,7 @@ int main() {
                             cl_counter++;
                 
                             if(ref_vel > front_car_vel*2.24){
-                                ref_vel -= 17.92/(s-car_s);
+                                ref_vel -= 14/(s-car_s);
                             }
                         
                     }//End if S > car_s
@@ -327,7 +332,7 @@ int main() {
                             front_left = true;
                         
                         }//End if S > car_s
-                        if (s < car_s && car_s - s <=12){ //Check if the car is in rear left of EGO
+                        if (s < car_s && car_s - s <=20){ //Check if the car is in rear left of EGO
                             
                             
                             std::cout << "Rear Left ID: " << id << std::endl;
@@ -360,7 +365,7 @@ int main() {
                             front_right = true;
                             
                         }//End if S > car_s
-                        if (s < car_s && car_s - s <=12){ //Check if the car is in Rear Right of EGO
+                        if (s < car_s && car_s - s <=20){ //Check if the car is in Rear Right of EGO
                             
                             
                             std::cout << "Rear Right ID: " << id << std::endl;
@@ -422,21 +427,22 @@ int main() {
             
             // STATES
             
-            if (cl_counter == 0)  { //Increase velocity if no car is closer than 30m
-                if (ref_vel <= 49.50) ref_vel += 0.448 ;
+            if (cl_counter == 0)  { //Increase velocity if no car is closer than 40m
+                if (ref_vel <= 49.50) ref_vel += 0.224 ;
             } else {
             
-                if (lane == 1 && front_car_vel<0.95*ref_vel && !front_left && !rear_left){
+                if (lane == 1 && front_car_vel<0.95*ref_vel && !front_left && !rear_left && !too_close){
                     lane = 0;
-                } else if (lane == 1 && front_car_vel<0.95*ref_vel && !front_right && !rear_right){
+                } else if (lane == 1 && front_car_vel<0.95*ref_vel && !front_right && !rear_right && !too_close){
                     lane = 2;
                 } else if (lane == 1 && front_car_vel<0.95*ref_vel && ((front_right && !rear_right) || (front_left && !rear_left))){
                     ref_vel -= 0.224;
                 } else if (lane == 1 && front_car_vel<0.95*ref_vel && ((!front_right && rear_right) || (!front_left && rear_left))){
                     if(ref_vel <= 49.5) ref_vel += 0.224;
+                    
                 }
             
-                if (lane == 2 && front_car_vel<0.95*ref_vel && !front_left && !rear_left){
+                if (lane == 2 && front_car_vel<0.95*ref_vel && !front_left && !rear_left && !too_close){
                     lane = 1;
                 }else if (lane == 2 && front_car_vel<0.95*ref_vel && ((front_right && !rear_right) || (front_left && !rear_left))){
                     ref_vel -= 0.224;
@@ -444,7 +450,7 @@ int main() {
                     if(ref_vel <= 49.5) ref_vel += 0.224;
                 }
             
-                if (lane == 0 && front_car_vel<0.95*ref_vel && !front_right && !rear_right){
+                if (lane == 0 && front_car_vel<0.95*ref_vel && !front_right && !rear_right && !too_close){
                     lane = 1;
                 }else if (lane == 0 && front_car_vel<0.95*ref_vel && ((front_right && !rear_right) || (front_left && !rear_left))){
                     ref_vel -= 0.224;
@@ -502,9 +508,9 @@ int main() {
                 
             }
             
-            vector<double> next_wp0 = getXY(car_s+40,2+4*lane,map_waypoints_s,map_waypoints_x,map_waypoints_y);
-            vector<double> next_wp1 = getXY(car_s+80,2+4*lane,map_waypoints_s,map_waypoints_x,map_waypoints_y);
-            vector<double> next_wp2 = getXY(car_s+120,2+4*lane,map_waypoints_s,map_waypoints_x,map_waypoints_y);
+            vector<double> next_wp0 = getXY(car_s+35,2+4*lane,map_waypoints_s,map_waypoints_x,map_waypoints_y);
+            vector<double> next_wp1 = getXY(car_s+70,2+4*lane,map_waypoints_s,map_waypoints_x,map_waypoints_y);
+            vector<double> next_wp2 = getXY(car_s+105,2+4*lane,map_waypoints_s,map_waypoints_x,map_waypoints_y);
             
             ptsx.push_back(next_wp0[0]);
             ptsx.push_back(next_wp1[0]);
