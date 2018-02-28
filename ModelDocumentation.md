@@ -1,6 +1,10 @@
 # UDACITY - Self Driving Car Engineer - Path Planner Project
 #### This writeup contains all steps as well the approach to implement a path planner to drive a car in the 3th term simulator.
 
+[//]: # (Image References)
+
+[image1]: ./EGO.png
+
 
 ## 1. Development Environment:
 
@@ -231,6 +235,11 @@ Increase safe distances (line 299, line 322, line 335, line 355, line 368)
 Decrease Spline Total Range (line 511 to 513)
 
 Increase safety check for changing lanes including the boolean variable too_close. EGO will change lane just if there is no car closer than 12 meters. (line 453, line 445, line 434)
+
+Note: Before re-submit the Project I left the car driving during 30 minutes and no incidendt was reported.
+
+![alt text][image1]
+
 
 
 
